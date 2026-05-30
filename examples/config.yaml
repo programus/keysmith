@@ -1,0 +1,75 @@
+# KeySmith example configuration.
+#
+# Place this at one of:
+#   - $KEYSMITH_CONFIG_FILE  (whatever path)
+#   - ~/.config/keysmith/config.yaml
+#   - ~/.keysmith.yaml
+#
+# Or pass explicitly with `keysmith --config /path/to/config.yaml ...`.
+#
+# All configuration keys use kebab-case (e.g. `open-delay-s` not
+# `open_delay_s`). KeySmith rejects unknown keys with a helpful error
+# rather than silently ignoring typos.
+
+device:
+  # Optional. If omitted (or set to a glob like /dev/cu.usbmodem*), the
+  # CLI auto-discovers by sending PING to candidate USB CDC devices.
+  # port: /dev/cu.usbmodem8401
+
+  # Optional. Default 115200. Must match the firmware's Serial.begin().
+  baud: 115200
+
+  # Optional. Default 0.05 seconds. Time to wait after opening the
+  # serial port before sending the first byte.
+  #
+  # Most third-party Pro Micro clones don't reset on DTR toggle and
+  # respond essentially immediately, so 0.05 is plenty.
+  #
+  # If you have a stock SparkFun Pro Micro or Arduino Leonardo whose
+  # Caterina bootloader resets on DTR toggle, you'll see PING failures
+  # at this default — bump it to 2.0 or so:
+  #   open-delay-s: 2.0
+  open-delay-s: 0.05
+
+actions:
+  # Trigger Karabiner-Elements rule keyed on International3 (HID 0x89).
+  unlock:
+    - tap: international3
+
+  # Harmless smoke-test: right shift on its own does nothing visible
+  # to most apps but appears in Karabiner's EventViewer, so it's a good
+  # check that the HID path is alive.
+  test:
+    - tap: right_shift
+
+  # Example combo: cmd + space (macOS Spotlight).
+  spotlight:
+    - press: cmd
+    - tap: space
+    - release: cmd
+
+  # Example with timing: press shift, wait, release.
+  long-shift:
+    - press: shift
+    - delay-ms: 500
+    - release: shift
+
+# ---- Available step types ----------------------------------------------
+#
+#   - press: <key>           Press a key without releasing.
+#   - release: <key>         Release a previously pressed key.
+#   - tap: <key>             Press + brief hold + release (most common).
+#   - delay-ms: <int>        Sleep N milliseconds before the next step.
+#   - release-all: true      Emergency: release every held key.
+#
+# ---- Key reference -----------------------------------------------------
+#
+# `<key>` accepts any of these forms:
+#   - Friendly alias (case- and separator-insensitive):
+#       international3 == International3 == intl3
+#       right_shift    == right-shift    == "right shift" == rshift
+#   - Hex string: 0x89
+#   - Decimal (>= 10): 137
+#
+# See ../host/README.md for the complete alias table grouped by HID
+# usage page (letters, function keys, modifiers, international, etc.).

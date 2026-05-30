@@ -244,9 +244,8 @@ compile_commands.json
 .Spotlight-V100
 .Trashes
 
-# uv (Python package manager)
+# uv (Python package manager) — cache only; lockfile IS committed
 .uv/
-uv.lock
 
 # Local secrets / overrides
 *.local.yaml
