@@ -23,7 +23,7 @@
 //   * Errors are silently dropped. The host uses PING to detect liveness.
 //
 // HID codes are USB HID Usage IDs from the Keyboard/Keypad Page (0x07).
-// E.g. International3 = 0x87. See HID-Project's KeyboardLayout.h.
+// E.g. International3 = 0x89. See HID-Project's ImprovedKeylayouts.h.
 
 #include <Arduino.h>
 #include <HID-Project.h>
