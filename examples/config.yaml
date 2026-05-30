@@ -32,8 +32,29 @@ device:
   open-delay-s: 0.05
 
 actions:
-  # Trigger Karabiner-Elements rule keyed on International3 (HID 0x89).
+  # Unlock the screen by triggering a Karabiner-Elements rule keyed on
+  # International3 (HID 0x89), which Karabiner translates into your
+  # password + Enter.
+  #
+  # Why three steps and not just one tap?
+  # When the display has been asleep for a while macOS suspends the HID
+  # event delivery path that Karabiner's virtual keyboard listens on, so
+  # the very first key after wake doesn't get processed by Karabiner —
+  # it leaks through as a bare HID code. By the time the second key
+  # arrives (~1-2s later), Karabiner is fully re-grabbed and ready.
+  #
+  # Step-by-step:
+  #   1. tap right_shift — wakes the display. right_shift is harmless
+  #      on the lock screen (the password field ignores modifier-only
+  #      events), so even if it leaks through nothing bad happens.
+  #   2. delay-ms 2000 — give Karabiner time to re-grab the device and
+  #      restart its event monitor. ~1.5s is usually enough; 2.0s adds
+  #      a safety margin. Increase if your setup is flakier.
+  #   3. tap international3 — triggers the Karabiner rule that types
+  #      your password and presses Enter, unlocking the session.
   unlock:
+    - tap: right_shift
+    - delay-ms: 2000
     - tap: international3
 
   # Harmless smoke-test: right shift on its own does nothing visible
