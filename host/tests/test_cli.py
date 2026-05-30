@@ -329,6 +329,102 @@ class TestRun:
         assert result.exit_code == 1
         assert "delay-ms" in _err(result)
 
+    def test_delay_seconds_step_runs(
+        self, empty_config_env, proto_factory, discover_stub, tmp_path
+    ):
+        # The new `delay` step takes seconds (float). Use 0.0 to avoid
+        # making the test slow — we only care that it parses and dispatches.
+        cfg = write_config(tmp_path, """
+            actions:
+              fast:
+                - tap: a
+                - delay: 0.0
+                - tap: b
+        """)
+        result = runner.invoke(app, ["run", "fast", "--config", str(cfg)])
+        assert result.exit_code == 0, _err(result)
+        fake = proto_factory[-1]
+        # Both taps must have fired around the delay.
+        ops = [c[0] for c in fake.calls]
+        assert ops.count("tap") == 2
+
+    def test_delay_seconds_validation_negative(
+        self, empty_config_env, proto_factory, discover_stub, tmp_path
+    ):
+        cfg = write_config(tmp_path, """
+            actions:
+              broken:
+                - delay: -0.5
+        """)
+        result = runner.invoke(app, ["run", "broken", "--config", str(cfg)])
+        assert result.exit_code == 1
+        assert "delay" in _err(result)
+
+    def test_delay_seconds_validation_string(
+        self, empty_config_env, proto_factory, discover_stub, tmp_path
+    ):
+        cfg = write_config(tmp_path, """
+            actions:
+              broken:
+                - delay: "soon"
+        """)
+        result = runner.invoke(app, ["run", "broken", "--config", str(cfg)])
+        assert result.exit_code == 1
+        assert "delay" in _err(result)
+
+    def test_delay_seconds_actually_sleeps(
+        self, empty_config_env, proto_factory, discover_stub, tmp_path, monkeypatch
+    ):
+        # Verify `delay: <float>` reaches time.sleep with the right value
+        # (not e.g. divided by 1000 like delay-ms).
+        slept = []
+        import keysmith.cli
+        monkeypatch.setattr(keysmith.cli.time, "sleep", lambda s: slept.append(s))
+        cfg = write_config(tmp_path, """
+            actions:
+              wait:
+                - delay: 1.5
+        """)
+        result = runner.invoke(app, ["run", "wait", "--config", str(cfg)])
+        assert result.exit_code == 0, _err(result)
+        assert 1.5 in slept
+
+    def test_delay_ms_legacy_actually_sleeps(
+        self, empty_config_env, proto_factory, discover_stub, tmp_path, monkeypatch
+    ):
+        # Lock in that the legacy `delay-ms: <int>` still divides by 1000.
+        slept = []
+        import keysmith.cli
+        monkeypatch.setattr(keysmith.cli.time, "sleep", lambda s: slept.append(s))
+        cfg = write_config(tmp_path, """
+            actions:
+              wait:
+                - delay-ms: 250
+        """)
+        result = runner.invoke(app, ["run", "wait", "--config", str(cfg)])
+        assert result.exit_code == 0, _err(result)
+        assert 0.25 in slept
+
+    def test_kebab_case_key_alias_in_action(
+        self, empty_config_env, proto_factory, discover_stub, tmp_path
+    ):
+        # The README documents kebab-case key aliases (right-shift, page-up).
+        # Make sure such configs actually run end-to-end through the keymap
+        # normalizer.
+        cfg = write_config(tmp_path, """
+            actions:
+              modifier-test:
+                - tap: right-shift
+                - tap: page-up
+        """)
+        result = runner.invoke(app, ["run", "modifier-test", "--config", str(cfg)])
+        assert result.exit_code == 0, _err(result)
+        fake = proto_factory[-1]
+        # right-shift = 0xE5, page-up = 0x4B.
+        codes = [c[1] for c in fake.calls if c[0] == "tap"]
+        assert 0xE5 in codes
+        assert 0x4B in codes
+
 
 # ---- release-all command (separate from step) -------------------------
 

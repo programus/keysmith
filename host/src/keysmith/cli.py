@@ -210,7 +210,17 @@ def _execute_step(
         p.release(resolve_key(val))
     elif op == "tap":
         p.tap(resolve_key(val))
+    elif op == "delay":
+        # New spelling: seconds (float or int), matches device.open-delay unit.
+        if isinstance(val, bool) or not isinstance(val, (int, float)) or val < 0:
+            raise KeySmithError(
+                f"action {action_name!r} step {index}: delay must be a "
+                f"non-negative number of seconds, got {val!r}"
+            )
+        time.sleep(float(val))
     elif op == "delay-ms":
+        # Deprecated v0.1 spelling: integer milliseconds. Still accepted so
+        # existing configs keep working; new configs should use `delay`.
         if isinstance(val, bool) or not isinstance(val, int) or val < 0:
             raise KeySmithError(
                 f"action {action_name!r} step {index}: delay-ms must be a "

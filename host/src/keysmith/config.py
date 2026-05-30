@@ -15,14 +15,14 @@ Schema (YAML keys use kebab-case throughout):
     device:
       port: /dev/cu.usbmodem*    # optional — autodiscovered if omitted
       baud: 115200               # optional — default 115200
-      open-delay-s: 0.05         # optional — see DeviceConfig.open_delay_s
+      open-delay: 0.05           # optional — see DeviceConfig.open_delay_s
 
     actions:
       <action-name>:
         - press: <key>           # press without release
         - release: <key>         # release a previously pressed key
         - tap: <key>             # press + brief hold + release
-        - delay-ms: <int>        # sleep N milliseconds
+        - delay: <float>         # sleep N seconds before the next step
         - release-all: true      # safety reset
 """
 
@@ -155,7 +155,7 @@ def _build_config(raw: Any, *, source: Path) -> Config:
     return Config(device=device, actions=actions, source=source)
 
 
-_DEVICE_KEYS = {"port", "baud", "open-delay-s"}
+_DEVICE_KEYS = {"port", "baud", "open-delay", "open-delay-s"}
 
 
 def _build_device(raw: Any, *, source: Path) -> DeviceConfig:
@@ -175,21 +175,35 @@ def _build_device(raw: Any, *, source: Path) -> DeviceConfig:
     if not isinstance(baud, int) or isinstance(baud, bool) or baud <= 0:
         raise ConfigError(f"{source}: device.baud must be a positive integer")
 
-    open_delay = raw.get("open-delay-s", DEFAULT_OPEN_DELAY_S)
+    # Accept both the new `open-delay` and the deprecated `open-delay-s`
+    # spelling. Both are seconds (floats); `-s` was redundant given that
+    # `device.open-delay` is the only `device.*` time field, and step-level
+    # `delay` shares the same unit.
+    if "open-delay" in raw and "open-delay-s" in raw:
+        raise ConfigError(
+            f"{source}: device has both 'open-delay' and 'open-delay-s'. "
+            f"Use only 'open-delay' ('open-delay-s' is the deprecated name)."
+        )
+    open_delay_key = "open-delay" if "open-delay" in raw else "open-delay-s"
+    open_delay = raw.get(open_delay_key, DEFAULT_OPEN_DELAY_S)
     if isinstance(open_delay, bool) or not isinstance(open_delay, (int, float)):
         raise ConfigError(
-            f"{source}: device.open-delay-s must be a non-negative number"
+            f"{source}: device.{open_delay_key} must be a non-negative number"
         )
     if open_delay < 0:
         raise ConfigError(
-            f"{source}: device.open-delay-s must be non-negative, got {open_delay}"
+            f"{source}: device.{open_delay_key} must be non-negative, got {open_delay}"
         )
 
     return DeviceConfig(port=port, baud=baud, open_delay_s=float(open_delay))
 
 
 # Step type names as they appear in YAML (kebab-case).
-_VALID_STEP_KEYS = {"press", "release", "tap", "delay-ms", "release-all"}
+# `delay-ms` (integer milliseconds) is the deprecated v0.1 spelling — kept
+# working for backwards compatibility but no longer documented; new configs
+# should use `delay` (float seconds), which matches the unit on
+# `device.open-delay`.
+_VALID_STEP_KEYS = {"press", "release", "tap", "delay", "delay-ms", "release-all"}
 
 
 def _build_actions(raw: Any, *, source: Path) -> Dict[str, List[Step]]:
@@ -234,8 +248,8 @@ def _reject_unknown_keys(
 ) -> None:
     """Raise ConfigError if `mapping` contains keys outside `allowed`.
 
-    This catches typos like `open_delay_s:` (snake_case) when
-    `open-delay-s:` is expected — without this, YAML would silently
+    This catches typos like `open_delay:` (snake_case) when
+    `open-delay:` is expected — without this, YAML would silently
     ignore the unknown key and the user would wonder why their config
     has no effect.
     """
@@ -247,5 +261,5 @@ def _reject_unknown_keys(
         raise ConfigError(
             f"{source}: unknown key(s) in {ctx}: {bad}. "
             f"Allowed: {wanted}. (Note: keys use kebab-case, e.g. "
-            f"'open-delay-s' not 'open_delay_s'.)"
+            f"'open-delay' not 'open_delay'.)"
         )

@@ -7,8 +7,8 @@
 #
 # Or pass explicitly with `keysmith --config /path/to/config.yaml ...`.
 #
-# All configuration keys use kebab-case (e.g. `open-delay-s` not
-# `open_delay_s`). KeySmith rejects unknown keys with a helpful error
+# All configuration keys use kebab-case (e.g. `open-delay` not
+# `open_delay`). KeySmith rejects unknown keys with a helpful error
 # rather than silently ignoring typos.
 
 device:
@@ -28,8 +28,8 @@ device:
   # If you have a stock SparkFun Pro Micro or Arduino Leonardo whose
   # Caterina bootloader resets on DTR toggle, you'll see PING failures
   # at this default — bump it to 2.0 or so:
-  #   open-delay-s: 2.0
-  open-delay-s: 0.05
+  #   open-delay: 2.0
+  open-delay: 0.05
 
 actions:
   # Unlock the screen by triggering a Karabiner-Elements rule keyed on
@@ -44,24 +44,24 @@ actions:
   # arrives (~1-2s later), Karabiner is fully re-grabbed and ready.
   #
   # Step-by-step:
-  #   1. tap right_shift — wakes the display. right_shift is harmless
+  #   1. tap right-shift — wakes the display. right-shift is harmless
   #      on the lock screen (the password field ignores modifier-only
   #      events), so even if it leaks through nothing bad happens.
-  #   2. delay-ms 2000 — give Karabiner time to re-grab the device and
+  #   2. delay 2.0 — give Karabiner time to re-grab the device and
   #      restart its event monitor. ~1.5s is usually enough; 2.0s adds
   #      a safety margin. Increase if your setup is flakier.
   #   3. tap international3 — triggers the Karabiner rule that types
   #      your password and presses Enter, unlocking the session.
   unlock:
-    - tap: right_shift
-    - delay-ms: 2000
+    - tap: right-shift
+    - delay: 2.0
     - tap: international3
 
   # Harmless smoke-test: right shift on its own does nothing visible
   # to most apps but appears in Karabiner's EventViewer, so it's a good
   # check that the HID path is alive.
   test:
-    - tap: right_shift
+    - tap: right-shift
 
   # Example combo: cmd + space (macOS Spotlight).
   spotlight:
@@ -72,7 +72,7 @@ actions:
   # Example with timing: press shift, wait, release.
   long-shift:
     - press: shift
-    - delay-ms: 500
+    - delay: 0.5
     - release: shift
 
 # ---- Available step types ----------------------------------------------
@@ -80,15 +80,21 @@ actions:
 #   - press: <key>           Press a key without releasing.
 #   - release: <key>         Release a previously pressed key.
 #   - tap: <key>             Press + brief hold + release (most common).
-#   - delay-ms: <int>        Sleep N milliseconds before the next step.
+#   - delay: <float>         Sleep N seconds before the next step.
 #   - release-all: true      Emergency: release every held key.
+#
+# `delay-ms: <int>` (integer milliseconds) is also accepted as a deprecated
+# spelling for compatibility with v0.1 configs, but new configs should use
+# `delay` (seconds, float).
 #
 # ---- Key reference -----------------------------------------------------
 #
 # `<key>` accepts any of these forms:
-#   - Friendly alias (case- and separator-insensitive):
+#   - Friendly alias (case- and separator-insensitive — kebab and snake
+#     forms are interchangeable; this file uses kebab-case to match the
+#     YAML key style):
 #       international3 == International3 == intl3
-#       right_shift    == right-shift    == "right shift" == rshift
+#       right-shift    == right_shift    == "right shift" == rshift
 #   - Hex string: 0x89
 #   - Decimal (>= 10): 137
 #

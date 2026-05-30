@@ -41,7 +41,7 @@ keysmith run unlock
 # Ad-hoc: tap a single key without needing config
 keysmith tap international3
 keysmith tap 0x89          # by raw HID code
-keysmith tap right_shift
+keysmith tap right-shift
 
 # Emergency: release any held keys
 keysmith release-all
@@ -60,7 +60,7 @@ See [`../examples/config.yaml`](../examples/config.yaml) for a full example.
 
 YAML keys use **kebab-case** throughout. KeySmith rejects unknown keys
 with a helpful error rather than silently ignoring typos — so writing
-`open_delay_s` (snake_case) instead of `open-delay-s` will produce a
+`open_delay` (snake_case) instead of `open-delay` will produce a
 clear message rather than mysterious "the setting has no effect".
 
 ### Schema
@@ -69,18 +69,24 @@ clear message rather than mysterious "the setting has no effect".
 device:
   port: /dev/cu.usbmodem8401   # optional — auto-discovered if omitted
   baud: 115200                 # optional — default 115200
-  open-delay-s: 0.05           # optional — default 0.05; see below
+  open-delay: 0.05             # optional — default 0.05; see below
 
 actions:
   <action-name>:
     - press: <key>             # press without release
     - release: <key>           # release a previously pressed key
     - tap: <key>               # press + brief hold + release
-    - delay-ms: <int>          # sleep N milliseconds
+    - delay: <float>           # sleep N seconds before the next step
     - release-all: true        # safety reset
 ```
 
-### `device.open-delay-s`
+> **Compatibility:** The previous spellings `device.open-delay-s`
+> (seconds) and step `delay-ms: <int>` (milliseconds) are still accepted
+> for v0.1 configs, but new configs should use `open-delay` and `delay`
+> (both seconds, float). Mixing the two `open-delay` spellings in the
+> same `device:` block is rejected with a clear error.
+
+### `device.open-delay`
 
 Seconds to wait after opening the serial port before talking to the
 board. The default of `0.05` works for typical third-party Pro Micro
@@ -92,14 +98,14 @@ with the default. Bump it up:
 
 ```yaml
 device:
-  open-delay-s: 2.0
+  open-delay: 2.0
 ```
 
 ## Key reference
 
 `<key>` accepts any of:
 
-- **Friendly alias** (case-insensitive; `_`, `-`, and space all interchangeable)
+- **Friendly alias** (case-insensitive; `_`, `-`, and space all interchangeable, so `right-shift`, `right_shift`, and `"right shift"` all work — the tables below show the kebab-case spelling to match the YAML key style)
 - **Hex string** like `0x89`
 - **Decimal** `>= 10` like `137` (single digits `0`-`9` always mean the digit-row keys, not raw HID codes — use `0x01`-`0x09` for those)
 
@@ -160,7 +166,7 @@ The complete alias table:
 | `0x2A` | `backspace` |
 | `0x2B` | `tab` |
 | `0x2C` | `space` |
-| `0x39` | `caps_lock` |
+| `0x39` | `caps-lock` |
 
 ### Punctuation
 
@@ -168,8 +174,8 @@ The complete alias table:
 |----------|---------|
 | `0x2D` | `minus`, `hyphen` |
 | `0x2E` | `equal`, `equals` |
-| `0x2F` | `left_bracket` |
-| `0x30` | `right_bracket` |
+| `0x2F` | `left-bracket` |
+| `0x30` | `right-bracket` |
 | `0x31` | `backslash` |
 | `0x33` | `semicolon` |
 | `0x34` | `quote`, `apostrophe` |
@@ -211,49 +217,49 @@ The complete alias table:
 
 | HID code | Aliases |
 |----------|---------|
-| `0x46` | `print_screen` |
-| `0x47` | `scroll_lock` |
+| `0x46` | `print-screen` |
+| `0x47` | `scroll-lock` |
 | `0x48` | `pause` |
 | `0x49` | `insert` |
 | `0x4A` | `home` |
-| `0x4B` | `pageup`, `page_up` |
-| `0x4C` | `delete`, `forward_delete` |
+| `0x4B` | `page-up`, `pageup` |
+| `0x4C` | `delete`, `forward-delete` |
 | `0x4D` | `end` |
-| `0x4E` | `pagedown`, `page_down` |
-| `0x4F` | `right`, `right_arrow` |
-| `0x50` | `left`, `left_arrow` |
-| `0x51` | `down`, `down_arrow` |
-| `0x52` | `up`, `up_arrow` |
+| `0x4E` | `page-down`, `pagedown` |
+| `0x4F` | `right`, `right-arrow` |
+| `0x50` | `left`, `left-arrow` |
+| `0x51` | `down`, `down-arrow` |
+| `0x52` | `up`, `up-arrow` |
 
 ### Keypad (numeric pad)
 
 | HID code | Aliases |
 |----------|---------|
-| `0x53` | `num_lock` |
-| `0x54` | `kp_slash`, `kp_divide` |
-| `0x55` | `kp_asterisk`, `kp_multiply` |
-| `0x56` | `kp_minus` |
-| `0x57` | `kp_plus` |
-| `0x58` | `kp_enter` |
-| `0x59` | `kp_1` |
-| `0x5A` | `kp_2` |
-| `0x5B` | `kp_3` |
-| `0x5C` | `kp_4` |
-| `0x5D` | `kp_5` |
-| `0x5E` | `kp_6` |
-| `0x5F` | `kp_7` |
-| `0x60` | `kp_8` |
-| `0x61` | `kp_9` |
-| `0x62` | `kp_0` |
-| `0x63` | `kp_dot`, `kp_period` |
-| `0x67` | `kp_equal` |
+| `0x53` | `num-lock` |
+| `0x54` | `kp-slash`, `kp-divide` |
+| `0x55` | `kp-asterisk`, `kp-multiply` |
+| `0x56` | `kp-minus` |
+| `0x57` | `kp-plus` |
+| `0x58` | `kp-enter` |
+| `0x59` | `kp-1` |
+| `0x5A` | `kp-2` |
+| `0x5B` | `kp-3` |
+| `0x5C` | `kp-4` |
+| `0x5D` | `kp-5` |
+| `0x5E` | `kp-6` |
+| `0x5F` | `kp-7` |
+| `0x60` | `kp-8` |
+| `0x61` | `kp-9` |
+| `0x62` | `kp-0` |
+| `0x63` | `kp-dot`, `kp-period` |
+| `0x67` | `kp-equal` |
 
 ### International (CJK IMEs)
 
 | HID code | Aliases |
 |----------|---------|
 | `0x87` | `intl1`, `international1` |
-| `0x88` | `intl2`, `international2`, `katakana_hiragana` |
+| `0x88` | `intl2`, `international2`, `katakana-hiragana` |
 | `0x89` | `intl3`, `international3` |
 | `0x8A` | `intl4`, `henkan`, `international4` |
 | `0x8B` | `intl5`, `muhenkan`, `international5` |
@@ -270,20 +276,20 @@ The complete alias table:
 | `0x91` | `hanja`, `lang2` |
 | `0x92` | `lang3`, `katakana` |
 | `0x93` | `lang4`, `hiragana` |
-| `0x94` | `lang5`, `zenkaku_hankaku` |
+| `0x94` | `lang5`, `zenkaku-hankaku` |
 
 ### Modifiers
 
 | HID code | Aliases |
 |----------|---------|
-| `0xE0` | `ctrl`, `control`, `lctrl`, `left_ctrl`, `left_control` |
-| `0xE1` | `shift`, `lshift`, `left_shift` |
-| `0xE2` | `alt`, `opt`, `option`, `lalt`, `loption`, `left_alt`, `left_option` |
-| `0xE3` | `cmd`, `command`, `meta`, `gui`, `win`, `lcmd`, `lmeta`, `lgui`, `left_cmd`, `left_meta`, `left_gui` |
-| `0xE4` | `rctrl`, `right_ctrl`, `right_control` |
-| `0xE5` | `rshift`, `right_shift` |
-| `0xE6` | `ralt`, `roption`, `right_alt`, `right_option` |
-| `0xE7` | `rcmd`, `rmeta`, `rgui`, `right_cmd`, `right_meta`, `right_gui` |
+| `0xE0` | `ctrl`, `control`, `lctrl`, `left-ctrl`, `left-control` |
+| `0xE1` | `shift`, `lshift`, `left-shift` |
+| `0xE2` | `alt`, `opt`, `option`, `lalt`, `loption`, `left-alt`, `left-option` |
+| `0xE3` | `cmd`, `command`, `meta`, `gui`, `win`, `lcmd`, `lmeta`, `lgui`, `left-cmd`, `left-meta`, `left-gui` |
+| `0xE4` | `rctrl`, `right-ctrl`, `right-control` |
+| `0xE5` | `rshift`, `right-shift` |
+| `0xE6` | `ralt`, `roption`, `right-alt`, `right-option` |
+| `0xE7` | `rcmd`, `rmeta`, `rgui`, `right-cmd`, `right-meta`, `right-gui` |
 
 > The unmodified `cmd`/`shift`/`ctrl`/`alt` aliases default to the
 > **left** modifier — matching how applications usually treat them.

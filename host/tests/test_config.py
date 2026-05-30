@@ -231,3 +231,104 @@ class TestLoadConfig:
         """)
         cfg = load_config(cfg_file)
         assert "long-shift" in cfg.actions
+
+
+class TestNewSpellings:
+    """v0.2 dropped the unit suffix on YAML keys: `open-delay` (seconds, float)
+    replaces `open-delay-s`, and step `delay` (seconds, float) replaces
+    `delay-ms` (integer milliseconds). The old spellings remain accepted as
+    deprecated aliases so v0.1 configs keep working."""
+
+    def test_open_delay_new_spelling_loaded(self, tmp_path):
+        cfg_file = write(tmp_path / "c.yaml", """
+            device:
+              open-delay: 1.25
+        """)
+        cfg = load_config(cfg_file)
+        assert cfg.device.open_delay_s == 1.25
+
+    def test_open_delay_legacy_spelling_still_loaded(self, tmp_path):
+        cfg_file = write(tmp_path / "c.yaml", """
+            device:
+              open-delay-s: 1.5
+        """)
+        cfg = load_config(cfg_file)
+        assert cfg.device.open_delay_s == 1.5
+
+    def test_open_delay_both_spellings_rejected(self, tmp_path):
+        # Mixing the new and the deprecated spelling in the same `device:`
+        # block is ambiguous; the loader rejects it with a clear error
+        # rather than silently picking one.
+        cfg_file = write(tmp_path / "c.yaml", """
+            device:
+              open-delay: 1.0
+              open-delay-s: 2.0
+        """)
+        with pytest.raises(ConfigError, match="both 'open-delay' and 'open-delay-s'"):
+            load_config(cfg_file)
+
+    def test_delay_step_seconds_loaded(self, tmp_path):
+        cfg_file = write(tmp_path / "c.yaml", """
+            actions:
+              slow:
+                - tap: a
+                - delay: 0.5
+                - tap: b
+        """)
+        cfg = load_config(cfg_file)
+        assert cfg.actions["slow"][1] == {"delay": 0.5}
+
+    def test_delay_ms_step_legacy_still_loaded(self, tmp_path):
+        cfg_file = write(tmp_path / "c.yaml", """
+            actions:
+              slow:
+                - tap: a
+                - delay-ms: 500
+                - tap: b
+        """)
+        cfg = load_config(cfg_file)
+        assert cfg.actions["slow"][1] == {"delay-ms": 500}
+
+    def test_unknown_step_lists_both_delay_spellings(self, tmp_path):
+        # The error message must point at the kebab-case canonical name; we
+        # also expect the deprecated `delay-ms` to be in the allow-list so
+        # v0.1 users get a familiar hint.
+        cfg_file = write(tmp_path / "c.yaml", """
+            actions:
+              broken:
+                - delay_ms: 100
+        """)
+        with pytest.raises(ConfigError) as exc_info:
+            load_config(cfg_file)
+        msg = str(exc_info.value)
+        assert "'delay'" in msg
+        assert "'delay-ms'" in msg
+
+
+class TestKeyAliasSpellings:
+    """v0.2 documents kebab-case for key aliases (right-shift, page-up, …)
+    while keeping snake_case (right_shift, page_up) accepted via the
+    keymap normalizer. These tests lock in that both spellings resolve."""
+
+    def test_kebab_case_value_string_accepted(self, tmp_path):
+        # Loading is purely a YAML-shape check; resolve_key isn't called
+        # at load time, so this test only proves the config loader doesn't
+        # care about value formatting.
+        cfg_file = write(tmp_path / "c.yaml", """
+            actions:
+              wake:
+                - tap: right-shift
+                - delay: 2.0
+                - tap: international3
+        """)
+        cfg = load_config(cfg_file)
+        assert cfg.actions["wake"][0] == {"tap": "right-shift"}
+
+    def test_kebab_and_snake_resolve_to_same_hid_code(self):
+        # Cross-check at the keymap layer: the two spellings the user might
+        # type for the same key must produce the same HID usage code.
+        from keysmith.keymap import resolve_key
+        assert resolve_key("right-shift") == resolve_key("right_shift") == 0xE5
+        assert resolve_key("page-up") == resolve_key("page_up") == 0x4B
+        assert resolve_key("caps-lock") == resolve_key("caps_lock") == 0x39
+        assert resolve_key("kp-enter") == resolve_key("kp_enter") == 0x58
